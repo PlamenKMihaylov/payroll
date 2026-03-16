@@ -1,5 +1,3 @@
-import helper.CurrencyFormatter;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,67 +6,74 @@ public class PayrollProcessor {
     public static List<Employee> employees = new ArrayList<>();
 
     public static double TAX_RATE = 0.2;
+    public static int REGULAR_HOURS_LIMIT = 160;
+    public static double OVERTIME_MULTIPLIER = 1.5;
 
     public static void addEmployee(Employee e) {
         employees.add(e);
         AuditLogger.logEmployeeAdded(e);
     }
 
-    public static void processPayroll() {
-        double total = 0;
-        PayrollSummary summary = new PayrollSummary();
+    public static void clearEmployees() {
+        employees.clear();
+    }
 
+    public static PayrollReport processPayroll() {
+        PayrollReport report = new PayrollReport();
         AuditLogger.logPayrollStart(employees.size());
 
         for (Employee e : employees) {
             ValidationService.validateEmployee(e);
-
-            double pay = 0;
-
-            if (e != null && "salaried".equals(e.type)) {
-                double gross = e.monthlySalary;
-                pay = calculateSalariedPay(e);
-                summary.recordSalaried(gross, pay);
-            } else if (e != null && "contractor".equals(e.type)) {
-                double gross = e.hourlyRate * e.hoursWorked;
-                pay = calculateContractorPay(e);
-                summary.recordContractor(gross, pay);
-            } else {
-                System.out.println("Unknown employee type: " + (e == null ? "<null>" : e.type));
-                summary.recordUnknown();
+            PayrollEntry entry = calculatePayrollEntry(e);
+            if (entry == null) {
+                report.recordUnknownEmployee();
                 AuditLogger.logUnknownType(e);
+                continue;
             }
 
-            total += pay;
-            System.out.println("Pay for " + (e == null ? "<unknown>" : e.name) + ": " + CurrencyFormatter.format(pay));
-            AuditLogger.logPayComputed(e, pay);
+            report.addEntry(entry);
+            AuditLogger.logPayComputed(e, entry);
         }
 
-        System.out.println("Total payroll: " + CurrencyFormatter.format(total));
-        printSummary(summary);
-        AuditLogger.logPayrollEnd(summary);
+        AuditLogger.logPayrollEnd(report);
+        return report;
     }
 
-    public static double calculateSalariedPay(Employee e) {
-        double tax = e.monthlySalary * TAX_RATE;
-        return e.monthlySalary - tax;
+    public static PayrollEntry calculatePayrollEntry(Employee e) {
+        if (e == null || e.type == null) {
+            return null;
+        }
+
+        if ("salaried".equals(e.type)) {
+            double gross = e.monthlySalary;
+            double tax = gross * TAX_RATE;
+            return new PayrollEntry(safeName(e), e.type, gross, tax, gross - tax);
+        }
+
+        if ("contractor".equals(e.type)) {
+            double gross = calculateHourlyGross(e.hourlyRate, e.hoursWorked);
+            return new PayrollEntry(safeName(e), e.type, gross, 0, gross);
+        }
+
+        if ("hourly".equals(e.type)) {
+            double gross = calculateHourlyGross(e.hourlyRate, e.hoursWorked);
+            double tax = gross * e.taxRate;
+            return new PayrollEntry(safeName(e), e.type, gross, tax, gross - tax);
+        }
+
+        return null;
     }
 
-    public static double calculateContractorPay(Employee e) {
-        return e.hourlyRate * e.hoursWorked;
+    public static double calculateHourlyGross(double hourlyRate, int hoursWorked) {
+        int regularHours = Math.min(hoursWorked, REGULAR_HOURS_LIMIT);
+        int overtimeHours = Math.max(hoursWorked - REGULAR_HOURS_LIMIT, 0);
+        return (regularHours * hourlyRate) + (overtimeHours * hourlyRate * OVERTIME_MULTIPLIER);
     }
 
-    private static void printSummary(PayrollSummary summary) {
-        System.out.println("Payroll summary:");
-        System.out.println("  salaried count: " + summary.getSalariedCount());
-        System.out.println("  contractor count: " + summary.getContractorCount());
-        System.out.println("  unknown count: " + summary.getUnknownCount());
-        System.out.println("  total gross: " + CurrencyFormatter.format(summary.getTotalGross()));
-        System.out.println("  total net: " + CurrencyFormatter.format(summary.getTotalNet()));
-    }
-
-    private static double calculateUnusedBonus(Employee e) {
-        double bonus = 0.05 * (e.type.equals("salaried") ? e.monthlySalary : e.hourlyRate * e.hoursWorked);
-        return bonus;
+    private static String safeName(Employee employee) {
+        if (employee == null || employee.name == null || employee.name.trim().isEmpty()) {
+            return "<unknown>";
+        }
+        return employee.name;
     }
 }
