@@ -1,3 +1,11 @@
+import model.ContractorEmployee;
+import model.Employee;
+import model.HourlyEmployee;
+import model.PayrollEntry;
+import model.PayrollReport;
+import model.SalariedEmployee;
+import service.PayrollProcessor;
+
 public class PayrollProcessorTest {
 
     private static final double DELTA = 0.0001;
@@ -7,14 +15,13 @@ public class PayrollProcessorTest {
         run("contractors receive overtime without tax", PayrollProcessorTest::testContractorOvertime);
         run("hourly employees apply overtime and tax", PayrollProcessorTest::testHourlyEmployeeOvertimeAndTax);
         run("payroll report totals aggregate entries", PayrollProcessorTest::testPayrollReportTotals);
-        run("unknown employee types are skipped and counted", PayrollProcessorTest::testUnknownEmployees);
+        run("employee lists use polymorphic pay calculation", PayrollProcessorTest::testPolymorphicPayCalculation);
 
         System.out.println("All tests passed.");
     }
 
     private static void testSalariedEmployeeTax() {
-        Employee employee = new Employee("Alice", "salaried");
-        employee.monthlySalary = 5000;
+        Employee employee = new SalariedEmployee("Alice", 5000);
 
         PayrollEntry entry = PayrollProcessor.calculatePayrollEntry(employee);
 
@@ -24,9 +31,7 @@ public class PayrollProcessorTest {
     }
 
     private static void testContractorOvertime() {
-        Employee employee = new Employee("Bob", "contractor");
-        employee.hourlyRate = 50;
-        employee.hoursWorked = 170;
+        Employee employee = new ContractorEmployee("Bob", 50, 170);
 
         PayrollEntry entry = PayrollProcessor.calculatePayrollEntry(employee);
 
@@ -36,10 +41,7 @@ public class PayrollProcessorTest {
     }
 
     private static void testHourlyEmployeeOvertimeAndTax() {
-        Employee employee = new Employee("Dana", "hourly");
-        employee.hourlyRate = 30;
-        employee.hoursWorked = 165;
-        employee.taxRate = 0.15;
+        Employee employee = new HourlyEmployee("Dana", 30, 165, 0.15);
 
         PayrollEntry entry = PayrollProcessor.calculatePayrollEntry(employee);
 
@@ -51,17 +53,9 @@ public class PayrollProcessorTest {
     private static void testPayrollReportTotals() {
         PayrollProcessor.clearEmployees();
 
-        Employee salaried = new Employee("Alice", "salaried");
-        salaried.monthlySalary = 5000;
-
-        Employee contractor = new Employee("Bob", "contractor");
-        contractor.hourlyRate = 50;
-        contractor.hoursWorked = 170;
-
-        Employee hourly = new Employee("Dana", "hourly");
-        hourly.hourlyRate = 30;
-        hourly.hoursWorked = 165;
-        hourly.taxRate = 0.15;
+        Employee salaried = new SalariedEmployee("Alice", 5000);
+        Employee contractor = new ContractorEmployee("Bob", 50, 170);
+        Employee hourly = new HourlyEmployee("Dana", 30, 165, 0.15);
 
         PayrollProcessor.addEmployee(salaried);
         PayrollProcessor.addEmployee(contractor);
@@ -75,19 +69,19 @@ public class PayrollProcessorTest {
         assertEquals(3, report.getProcessedEmployeeCount(), "processed employees");
     }
 
-    private static void testUnknownEmployees() {
-        PayrollProcessor.clearEmployees();
+    private static void testPolymorphicPayCalculation() {
+        Employee[] employees = {
+            new SalariedEmployee("Alice", 5000),
+            new ContractorEmployee("Bob", 50, 170),
+            new HourlyEmployee("Dana", 30, 165, 0.15)
+        };
 
-        Employee employee = new Employee("Mystery", "intern");
-        PayrollProcessor.addEmployee(employee);
+        double totalNetPay = 0;
+        for (Employee employee : employees) {
+            totalNetPay += employee.calculatePay();
+        }
 
-        PayrollReport report = PayrollProcessor.processPayroll();
-
-        assertEquals(0, report.getProcessedEmployeeCount(), "processed employees");
-        assertEquals(1, report.getUnknownEmployeeCount(), "unknown employees");
-        assertEquals(0, report.getTotalGross(), "total gross");
-        assertEquals(0, report.getTotalTax(), "total tax");
-        assertEquals(0, report.getTotalNet(), "total net");
+        assertEquals(17021.25, totalNetPay, "polymorphic total net pay");
     }
 
     private static void run(String name, TestCase testCase) {
