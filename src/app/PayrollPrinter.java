@@ -1,4 +1,8 @@
+package app;
+
 import helper.CurrencyFormatter;
+import model.PayrollEntry;
+import model.PayrollReport;
 
 public class PayrollPrinter {
 

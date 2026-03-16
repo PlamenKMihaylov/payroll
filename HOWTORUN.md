@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Java 8 or newer
+- Java 17 or newer
 
 ## Compile the app
 
@@ -14,7 +14,7 @@ javac -d out $(find src -name '*.java' | sort)
 ## Run the app
 
 ```sh
-java -cp out Main
+java -cp out app.Main
 ```
 
 ## Run the tests
@@ -33,4 +33,4 @@ The sample `Main` program runs payroll for:
 - `contractor` employees with overtime after 160 hours and no tax
 - `hourly` employees with overtime after 160 hours and per-employee tax rates
 
-The payroll engine returns a structured `PayrollReport`, and `Main` prints it using `PayrollPrinter`.
+The payroll engine returns a structured `PayrollReport`, and `app.Main` prints it using `app.PayrollPrinter`.

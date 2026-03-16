@@ -1,4 +1,9 @@
+package service;
+
 import helper.CurrencyFormatter;
+import model.Employee;
+import model.PayrollEntry;
+import model.PayrollReport;
 
 public class AuditLogger {
 
@@ -12,10 +17,6 @@ public class AuditLogger {
 
     public static void logPayrollEnd(PayrollReport report) {
         System.out.println("[audit] payroll run finished: " + report.getEmployeeCount() + " employees processed");
-    }
-
-    public static void logUnknownType(Employee employee) {
-        System.out.println("[audit] unknown employee type: " + safeType(employee));
     }
 
     public static void logPayComputed(Employee employee, PayrollEntry entry) {
@@ -32,16 +33,9 @@ public class AuditLogger {
     }
 
     private static String safeName(Employee employee) {
-        if (employee == null || employee.name == null || employee.name.trim().isEmpty()) {
+        if (employee == null || employee.getName() == null || employee.getName().trim().isEmpty()) {
             return "<unknown>";
         }
-        return employee.name;
-    }
-
-    private static String safeType(Employee employee) {
-        if (employee == null || employee.type == null) {
-            return "<null>";
-        }
-        return employee.type;
+        return employee.getName();
     }
 }
