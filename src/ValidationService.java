@@ -25,6 +25,10 @@ public class ValidationService {
         if (employee.monthlySalary < 0) {
             System.out.println("[warn] negative monthly salary for " + safeName(employee));
         }
+
+        if (employee.taxRate < 0 || employee.taxRate > 1) {
+            System.out.println("[warn] invalid tax rate for " + safeName(employee));
+        }
     }
 
     private static String safeName(Employee employee) {
@@ -34,4 +38,3 @@ public class ValidationService {
         return employee.name;
     }
 }
-
