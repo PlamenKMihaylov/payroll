@@ -3,6 +3,7 @@
 ## Requirements
 
 - Java 17 or newer
+- Maven 3.9 or newer for running tests
 
 ## Compile the app
 
@@ -20,9 +21,7 @@ java -cp out app.Main
 ## Run the tests
 
 ```sh
-mkdir -p out-test
-javac -d out-test $(find src test -name '*.java' | sort)
-java -cp out-test PayrollProcessorTest
+mvn test
 ```
 
 ## What the app does
